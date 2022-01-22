@@ -50,8 +50,7 @@ class ChartWidget(QWidget):
         self.y_to_spin_box.setValue(y_to)
         self.y_step_spin_box.setValue(y_step)
         self.scale_spin_box.setValue(scale)
-        
-    
+
     def get_id(self):
         return self.id
     
@@ -117,7 +116,7 @@ class ChartWidget(QWidget):
         color = QColorDialog.getColor()
         if color.isValid():
             self.color = color.getRgb()[:3]
-            self.color_btn.setStyleSheet(f'border: 3px solid black;border-radius: 5px;background-color: rgb{self.color};')
+            self.color_btn.setStyleSheet(f'border:3px solid black;border-radius:5px;background-color:rgb{self.color};')
             self.redraw_chart()
 
 

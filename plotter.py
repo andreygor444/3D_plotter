@@ -226,10 +226,9 @@ def main():
     charts[-1] = axis_chart
     
     queue = Queue()
-    gui_process = Process(target=start_gui, args=[queue])
+    gui_process = Process(target=start_gui, args=(queue,))
     gui_process.start()
-    
-    
+
     os.environ['SDL_VIDEO_WINDOW_POS'] = '{},{}'.format(*PLOTTER_WINDOW_POS)
     os.environ['SDL_VIDEO_CENTERED'] = '0'
     screen = pygame.display.set_mode(DISPLAY_SIZE, pygame.RESIZABLE)
@@ -339,5 +338,3 @@ def mainloop(screen, charts, queue):
 
 if __name__ == '__main__':
     main()
-
-
