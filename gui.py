@@ -16,6 +16,8 @@ class ChartWidget(QWidget):
         self.hide_chart_func = hide_chart_func
         self.del_chart_func = del_chart_func
         self.color = (255, 255, 255)
+        self.points_visibility = False
+        self.lines_visibility = True
         self._initUI()
     
     def _initUI(self):
@@ -40,6 +42,8 @@ class ChartWidget(QWidget):
         self.function_input.returnPressed.connect(self.plot_or_hide_chart)
         self.delete_btn.clicked.connect(partial(self.del_chart_func, self))
         self.color_btn.clicked.connect(self.change_color)
+        self.show_points_checkbox.stateChanged.connect(self.redraw_chart)
+        self.show_lines_checkbox.stateChanged.connect(self.redraw_chart)
     
     def set_params(self, func, x_from, x_to, y_from, y_to, x_step, y_step, scale):
         self.function_input.setText(func)
@@ -60,7 +64,8 @@ class ChartWidget(QWidget):
             self.x_from_spin_box.value(), self.x_to_spin_box.value(),
             self.y_from_spin_box.value(), self.y_to_spin_box.value(),
             self.x_step_spin_box.value(), self.y_step_spin_box.value(),
-            self.scale_spin_box.value(), self.color
+            self.scale_spin_box.value(), self.color,
+            self.show_points_checkbox.isChecked(), self.show_lines_checkbox.isChecked()
         )
     
     def get_func(self):
@@ -71,7 +76,7 @@ class ChartWidget(QWidget):
     
     def validate_user_input(self, show_errors=True):
         try:
-            func, x_from, x_to, y_from, y_to, x_step, y_step, scale, color = self.get_params()
+            func, x_from, x_to, y_from, y_to, x_step, y_step, scale, _, _, _ = self.get_params()
             assert x_from < x_to
             assert y_from < y_to
             assert x_step < x_to - x_from

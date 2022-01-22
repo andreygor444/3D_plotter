@@ -9,7 +9,7 @@ from gui import start_gui
 
 class Point:
     default_color = 'white'
-    default_size = 3
+    default_size = 2
     
     def __init__(self, x, y, z, color=default_color, size=default_size, x_bias=0, y_bias=0, z_bias=0, zoom_power=1):
         self._setup(x, y, z, zoom_power)
@@ -124,8 +124,13 @@ class Chart:
         self.x_bias = 0
         self.y_bias = 0
         self.z_bias = 0
+        self.show_points = False
+        self.show_lines = True
 
-    def make_chart(self, func, x_begin, x_end, y_begin, y_end, x_step, y_step, scale=1, color=default_color):
+    def make_chart(self, func, x_begin, x_end, y_begin, y_end, x_step, y_step, scale=1,
+                   color=default_color, show_points=False, show_lines=True):
+        self.show_points = show_points
+        self.show_lines = show_lines
         self.clear()
         matrix = []
         x_end += x_step
@@ -137,6 +142,7 @@ class Chart:
             while y <= y_end:
                 try:
                     matrix[-1].append((x * scale, y * scale, func(x, y) * scale))
+                    self.points.append(Point(*matrix[-1][-1], color))
                 except Exception:
                     matrix[-1].append(None)
                 y += y_step
@@ -198,11 +204,12 @@ class Chart:
             line.move(dx, dy, dz)
 
     def render(self, screen):
-        for point in self.points:
-            point.render(screen)
-        
-        for line in self.lines:
-            line.render(screen)
+        if self.show_points:
+            for point in self.points:
+                point.render(screen)
+        if self.show_lines:
+            for line in self.lines:
+                line.render(screen)
 
 
 def make_axis_chart():
