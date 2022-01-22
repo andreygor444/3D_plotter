@@ -115,8 +115,7 @@ class Line:
 class Chart:
     default_color = 'white'
     
-    def __init__(self, color=default_color):
-        self.color = color
+    def __init__(self):
         self.points = []
         self.lines = []
         self.zoom_power = 1
@@ -146,13 +145,13 @@ class Chart:
         for i in range(len(matrix)):
             for j in range(1, len(matrix[i])):
                 if matrix[i][j-1] and matrix[i][j]:
-                    self.lines.append(Line(Point(*matrix[i][j-1], self.color), Point(*matrix[i][j], self.color), color))
+                    self.lines.append(Line(Point(*matrix[i][j-1], color), Point(*matrix[i][j], color), color))
         if len(matrix) == 0:
             return
         for i in range(1, len(matrix)):
             for j in range(len(matrix[0])):
                 if matrix[i-1][j] and matrix[i][j]:
-                    self.lines.append(Line(Point(*matrix[i-1][j], self.color), Point(*matrix[i][j], self.color), color))
+                    self.lines.append(Line(Point(*matrix[i-1][j], color), Point(*matrix[i][j], color), color))
     
     def set_points(self, points):
         self.points = points

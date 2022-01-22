@@ -1,6 +1,6 @@
 from PyQt5.QtWidgets import (QApplication, QWidget, QScrollArea,
                              QVBoxLayout, QGroupBox, QPushButton,
-                             QHBoxLayout, QAbstractSpinBox)
+                             QHBoxLayout, QAbstractSpinBox, QColorDialog)
 from PyQt5 import uic
 from PyQt5.QtGui import QFont
 from functools import partial
@@ -15,6 +15,7 @@ class ChartWidget(QWidget):
         self.plot_chart_func = plot_chart_func
         self.hide_chart_func = hide_chart_func
         self.del_chart_func = del_chart_func
+        self.color = (255, 255, 255)
         self._initUI()
     
     def _initUI(self):
@@ -38,6 +39,7 @@ class ChartWidget(QWidget):
         self.plot_btn.clicked.connect(self.plot_or_hide_chart)
         self.function_input.returnPressed.connect(self.plot_or_hide_chart)
         self.delete_btn.clicked.connect(partial(self.del_chart_func, self))
+        self.color_btn.clicked.connect(self.change_color)
     
     def set_params(self, func, x_from, x_to, y_from, y_to, x_step, y_step, scale):
         self.function_input.setText(func)
@@ -59,7 +61,7 @@ class ChartWidget(QWidget):
             self.x_from_spin_box.value(), self.x_to_spin_box.value(),
             self.y_from_spin_box.value(), self.y_to_spin_box.value(),
             self.x_step_spin_box.value(), self.y_step_spin_box.value(),
-            self.scale_spin_box.value()
+            self.scale_spin_box.value(), self.color
         )
     
     def get_func(self):
@@ -70,7 +72,7 @@ class ChartWidget(QWidget):
     
     def validate_user_input(self, show_errors=True):
         try:
-            func, x_from, x_to, y_from, y_to, x_step, y_step, scale = self.get_params()
+            func, x_from, x_to, y_from, y_to, x_step, y_step, scale, color = self.get_params()
             assert x_from < x_to
             assert y_from < y_to
             assert x_step < x_to - x_from
@@ -110,6 +112,13 @@ class ChartWidget(QWidget):
             self.plot_btn.setText('Plot')
             self.plot_btn.setStyleSheet('border: 3px solid black;border-radius:5px;background-color:#00aa00')
             self.hide_chart_func(self.id)
+    
+    def change_color(self):
+        color = QColorDialog.getColor()
+        if color.isValid():
+            self.color = color.getRgb()[:3]
+            self.color_btn.setStyleSheet(f'border: 3px solid black;border-radius: 5px;background-color: rgb{self.color};')
+            self.redraw_chart()
 
 
 class MainWindow(QWidget):

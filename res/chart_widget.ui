@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>802</width>
+    <width>883</width>
     <height>197</height>
    </rect>
   </property>
@@ -107,6 +107,9 @@
                <font>
                 <pointsize>17</pointsize>
                </font>
+              </property>
+              <property name="cursor">
+               <cursorShape>PointingHandCursor</cursorShape>
               </property>
               <property name="styleSheet">
                <string notr="true">border: 3px solid black;border-radius:5px;background-color:#00aa00</string>
@@ -421,6 +424,24 @@
                </widget>
               </item>
               <item>
+               <widget class="QPushButton" name="color_btn">
+                <property name="font">
+                 <font>
+                  <pointsize>15</pointsize>
+                 </font>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
+                </property>
+                <property name="styleSheet">
+                 <string notr="true">border: 3px solid black;border-radius: 5px;background-color: #fff;</string>
+                </property>
+                <property name="text">
+                 <string>Color</string>
+                </property>
+               </widget>
+              </item>
+              <item>
                <widget class="QPushButton" name="delete_btn">
                 <property name="minimumSize">
                  <size>
@@ -432,6 +453,9 @@
                  <font>
                   <pointsize>15</pointsize>
                  </font>
+                </property>
+                <property name="cursor">
+                 <cursorShape>PointingHandCursor</cursorShape>
                 </property>
                 <property name="styleSheet">
                  <string notr="true">border: 3px solid black;border-radius:5px;background-color:#ee0000</string>
