@@ -27,6 +27,13 @@ class ChartWidget(QWidget):
         self.y_step_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.scale_spin_box.setButtonSymbols(QAbstractSpinBox.NoButtons)
         self.function_input.textChanged.connect(self.redraw_chart)
+        self.x_from_spin_box.valueChanged.connect(self.redraw_chart)
+        self.x_to_spin_box.valueChanged.connect(self.redraw_chart)
+        self.x_step_spin_box.valueChanged.connect(self.redraw_chart)
+        self.y_from_spin_box.valueChanged.connect(self.redraw_chart)
+        self.y_to_spin_box.valueChanged.connect(self.redraw_chart)
+        self.y_step_spin_box.valueChanged.connect(self.redraw_chart)
+        self.scale_spin_box.valueChanged.connect(self.redraw_chart)
         
         self.plot_btn.clicked.connect(self.plot_or_hide_chart)
         self.function_input.returnPressed.connect(self.plot_or_hide_chart)

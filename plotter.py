@@ -149,8 +149,8 @@ class Chart:
                     self.lines.append(Line(Point(*matrix[i][j-1], self.color), Point(*matrix[i][j], self.color), color))
         if len(matrix) == 0:
             return
-        for i in range(1, len(matrix[0])):
-            for j in range(len(matrix)):
+        for i in range(1, len(matrix)):
+            for j in range(len(matrix[0])):
                 if matrix[i-1][j] and matrix[i][j]:
                     self.lines.append(Line(Point(*matrix[i-1][j], self.color), Point(*matrix[i][j], self.color), color))
     
