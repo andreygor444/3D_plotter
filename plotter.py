@@ -185,8 +185,6 @@ class Chart:
             line.zoom(d_zoom)
     
     def rotate(self, d_h_angle, d_v_angle):
-        if not (-pi/2 <= self.v_angle + d_v_angle <= pi/2):
-            d_v_angle = 0
         self.h_angle += d_h_angle
         self.v_angle += d_v_angle
         for point in self.points:
@@ -288,9 +286,10 @@ def mainloop(screen, charts, queue):
                     mouse_pos = event.pos
                     d_x = (last_mouse_pos[0] - mouse_pos[0]) / ROTATION_COEF
                     d_y = (last_mouse_pos[1] - mouse_pos[1]) / ROTATION_COEF
+                    v_angle += d_y
+                    if not (v_angle // pi % 2):
+                        d_x *= -1
                     h_angle += d_x
-                    if -pi/2 <= v_angle + d_y <= pi/2:
-                        v_angle += d_y
                     for chart in charts.values():
                         chart.rotate(d_x, d_y)
                 if moving:
