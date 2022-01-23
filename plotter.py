@@ -120,8 +120,12 @@ class Chart:
                 for y in range(1, m):
                     if self.x_gaps[0][i] == x and self.x_gaps[1][i] == y:
                         i += 1
-                    else:
-                        pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x-1][y], -self.z[x-1][y]), width=1)
+                        if self.y_gaps[0,j] == x and self.y_gaps[1,j] == y:
+                            j += 1
+                            continue
+                        pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
+                        continue
+                    pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x-1][y], -self.z[x-1][y]), width=1)
                     if self.y_gaps[0,j] == x and self.y_gaps[1,j] == y:
                         j += 1
                         continue
