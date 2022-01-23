@@ -1,123 +1,22 @@
 import pygame
-from math import sin, cos, atan
 from multiprocessing import Process, Queue
+import numpy as np
 import os
 
 from config import *
 from gui import start_gui
 
 
-class Point:
-    default_color = 'white'
-    default_size = 2
-    
-    def __init__(self, x, y, z, color=default_color, size=default_size, x_bias=0, y_bias=0, z_bias=0, zoom_power=1):
-        self._setup(x, y, z, zoom_power)
-        self.start_v_angle = self.v_angle
-        self.x = x
-        self.y = y
-        self.z = z
-        self.color = color
-        self.size = size
-        self.x_bias = x_bias
-        self.y_bias = y_bias
-        self.z_bias = z_bias
-        self.zoom_power = zoom_power
-
-    def _setup(self, x, y, z, zoom_power=1):
-        self.h_radius = (x ** 2 + y ** 2) ** 0.5 * zoom_power
-        self.v_radius = (y ** 2 + z ** 2) ** 0.5 * zoom_power
-        try:
-            self.h_angle = atan(y / x)
-        except ZeroDivisionError:
-            self.h_angle = pi / 2 if y > 0 else -pi / 2 
-        if x < 0:
-            self.h_angle += pi
-        elif y == 0:
-            self.h_angle = pi * (x < 0)
-        try:
-            self.v_angle = atan(z / y)
-        except ZeroDivisionError:
-            self.v_angle = pi / 2 if y > 0 else -pi / 2 
-        if y < 0:
-            self.v_angle += pi
-
-    def set_bias(self, x_bias=0, y_bias=0, z_bias=0):
-        self.x_bias = x_bias
-        self.y_bias = y_bias
-        self.z_bias = z_bias
-
-    def zoom(self, d_zoom):
-        self.zoom_power += d_zoom
-    
-    def rotate(self, d_h_angle, d_v_angle):
-        self.h_angle += d_h_angle
-        self.v_angle += d_v_angle
-    
-    def move(self, dx, dy, dz):
-        self.x_bias += dx
-        self.y_bias += dy
-        self.z_bias += dz
-    
-    def get_coords(self):
-        x = cos(self.h_angle) * self.h_radius / self.zoom_power
-        y = sin(self.h_angle) * self.h_radius / self.zoom_power
-        v_radius = (y ** 2 + self.z ** 2) ** 0.5
-        try:
-            v_angle = atan(self.z / y) + self.v_angle - self.start_v_angle
-        except ZeroDivisionError:
-            v_angle = pi / 2 + self.v_angle - self.start_v_angle
-            if self.z < 0:
-                v_angle -= pi
-        if y < 0:
-            v_angle += pi
-        y = cos(v_angle) * v_radius / self.zoom_power
-        z = sin(v_angle) * v_radius / self.zoom_power
-        return x + self.x_bias, y + self.y_bias, -z + self.z_bias
-    
-    def render(self, screen):
-        x, y, z = self.get_coords()
-        pygame.draw.circle(screen, self.color, (x, z), self.size)
-
-
-class Line:
-    default_color = 'white'
-    default_width = 1
-    
-    def __init__(self, point_1, point_2, color=default_color, width=default_width):
-        self.point_1 = point_1
-        self.point_2 = point_2
-        self.color = color
-        self.width = width
-    
-    def set_bias(self, x_bias=0, y_bias=0, z_bias=0):
-        self.point_1.set_bias(x_bias, y_bias, z_bias)
-        self.point_2.set_bias(x_bias, y_bias, z_bias)
-    
-    def zoom(self, d_zoom):
-        self.point_1.zoom(d_zoom)
-        self.point_2.zoom(d_zoom)
-    
-    def rotate(self, d_h_angle, d_v_angle):
-        self.point_1.rotate(d_h_angle, d_v_angle)
-        self.point_2.rotate(d_h_angle, d_v_angle)
-    
-    def move(self, dx, dy, dz):
-        self.point_1.move(dx, dy, dz)
-        self.point_2.move(dx, dy, dz)
-
-    def render(self, screen):
-        x1, y1, z1 = self.point_1.get_coords()
-        x2, y2, z2 = self.point_2.get_coords()
-        pygame.draw.line(screen, self.color, (x1, z1), (x2, z2), width=self.width)
-
-
 class Chart:
-    default_color = 'white'
+    color = 'white'
     
     def __init__(self):
-        self.points = []
-        self.lines = []
+        self.X = np.empty(0)
+        self.Y = np.empty(0)
+        self.Z = np.empty((0, 0))
+        self.x = np.empty(0)
+        self.y = np.empty(0)
+        self.z = np.empty(0)
         self.zoom_power = 1
         self.h_angle = 0
         self.v_angle = 0
@@ -128,107 +27,150 @@ class Chart:
         self.show_lines = True
 
     def make_chart(self, func, x_begin, x_end, y_begin, y_end, x_step, y_step, scale=1,
-                   color=default_color, show_points=False, show_lines=True):
-        self.show_points = show_points
-        self.show_lines = show_lines
-        self.clear()
-        matrix = []
-        x_end += x_step
-        y_end += y_step
-        x = x_begin
-        while x <= x_end:
-            matrix.append([])
-            y = y_begin
-            while y <= y_end:
-                try:
-                    matrix[-1].append((x * scale, y * scale, func(x, y) * scale))
-                    self.points.append(Point(*matrix[-1][-1], color))
-                except Exception:
-                    matrix[-1].append(None)
-                y += y_step
-            x += x_step
-
-        for i in range(len(matrix)):
-            for j in range(1, len(matrix[i])):
-                if matrix[i][j-1] and matrix[i][j]:
-                    self.lines.append(Line(Point(*matrix[i][j-1], color), Point(*matrix[i][j], color), color))
-        if len(matrix) == 0:
-            return
-        for i in range(1, len(matrix)):
-            for j in range(len(matrix[0])):
-                if matrix[i-1][j] and matrix[i][j]:
-                    self.lines.append(Line(Point(*matrix[i-1][j], color), Point(*matrix[i][j], color), color))
+                   color=color, show_points=False, show_lines=True):
+        try:
+            self.show_points = show_points
+            self.show_lines = show_lines
+            self.color = color
+            self.clear()
+            x_axis = np.linspace(x_begin, x_end, round((x_end-x_begin) / x_step) + 1, dtype=np.float64) * scale
+            y_axis = np.linspace(y_begin, y_end, round((y_end-y_begin) / y_step) + 1, dtype=np.float64) * scale
+            self.X, self.Y = np.meshgrid(x_axis, y_axis)
+            self.Z = func(self.X, self.Y) * scale
+            self.Z[np.abs(self.Z) > INF] = np.nan
+        except Exception as err:
+            self.clear()
+            print("Error:", err)
     
-    def set_points(self, points):
-        self.points = points
-    
-    def set_lines(self, lines):
-        self.lines = lines
-    
-    def set_bias(self, x_bias=0, y_bias=0, z_bias=0):
-        for point in self.points:
-            point.set_bias(x_bias, y_bias, z_bias)
-        for line in self.lines:
-            line.set_bias(x_bias, y_bias, z_bias)
+    def set_chart(self, x, y, z, color=color):
+        self.X, self.Y, self.Z = x, y, z
+        self.color = color
 
     def clear(self):
-        self.points.clear()
-        self.lines.clear()
+        self.X = np.empty(0)
+        self.Y = np.empty(0)
+        self.Z = np.empty((0, 0))
     
-    def zoom(self, d_zoom):
-        if self.zoom_power + d_zoom <= 0:
-            return
-        self.zoom_power += d_zoom
-        for point in self.points:
-            point.zoom(d_zoom)
-        for line in self.lines:
-            line.zoom(d_zoom)
+    def zoom(self, zoom):
+        self.zoom_power = zoom
     
-    def rotate(self, d_h_angle, d_v_angle):
-        self.h_angle += d_h_angle
-        self.v_angle += d_v_angle
-        for point in self.points:
-            point.rotate(d_h_angle, d_v_angle)
-        for line in self.lines:
-            line.rotate(d_h_angle, d_v_angle)
+    def _zoom(self):
+        self.x *= self.zoom_power
+        self.y *= self.zoom_power
+        self.z *= self.zoom_power
+    
+    def rotate(self, h_angle, v_angle):
+        self.h_angle = h_angle
+        self.v_angle = v_angle
+    
+    def _rotate(self):
+        x = self.x*np.cos(self.h_angle) - self.y*np.sin(self.h_angle)
+        y = self.x*np.sin(self.h_angle) + self.y*np.cos(self.h_angle)
+        self.x = x
+        self.y = y
+        
+        y = self.y*np.cos(self.v_angle) - self.z*np.sin(self.v_angle)
+        self.z = -self.y*np.sin(self.v_angle) + self.z*np.cos(self.v_angle)
+        self.y = y
 
-    def move(self, dx=0, dy=0, dz=0):
-        self.x_bias += dx
-        self.y_bias += dy
-        self.z_bias += dz
-        for point in self.points:
-            point.move(dx, dy, dz)
-        for line in self.lines:
-            line.move(dx, dy, dz)
+    def move(self, x_bias=0, y_bias=0, z_bias=0):
+        self.x_bias = x_bias
+        self.y_bias = y_bias
+        self.z_bias = z_bias
+
+    def _move(self):
+        self.x += self.x_bias
+        self.y += self.y_bias
+        self.z += self.z_bias
 
     def render(self, screen):
+        self.x = self.X.copy()
+        self.y = self.Y.copy()
+        self.z = self.Z.copy()
+        self._zoom()
+        self._rotate()
+        self._move()
+        n = self.x.shape[0]
+        m = self.x.shape[1] if len(self.x.shape) > 1 else 0
+        x_gaps_, y_gaps_ = np.array(np.where(np.isnan(self.Z)))
+        x_gaps = np.concatenate(([-1], x_gaps_, [n]))
+        y_gaps = np.concatenate(([-1], y_gaps_, [m]))
         if self.show_points:
-            for point in self.points:
-                point.render(screen)
+            for x in range(n):
+                for y in range(m):
+                    pygame.draw.circle(screen, self.color, (self.x[x][y], -self.z[x][y]), 2)
         if self.show_lines:
-            for line in self.lines:
-                line.render(screen)
+            x = n
+            for i in range(1, len(x_gaps)):
+                for x in range(x_gaps[i-1]+2, x_gaps[i]):
+                    for y in range(1, m):
+                        pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
+                        pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x-1][y], -self.z[x-1][y]), width=1)
+                j = i
+                x += 1
+                if x < n:
+                    while j < len(x_gaps) and x_gaps[j] == x_gaps[i]:
+                        y_gaps[j-1] = -1
+                        for y in range(y_gaps[j-1]+2, y_gaps[j]):
+                            pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
+                        j += 1
+                i = j
+                x += 1
+                y_gaps[j-1] = -1
+                if x < n:
+                    while j < len(x_gaps) and x_gaps[j] == x_gaps[i]:
+                        for y in range(y_gaps[j-1]+2, y_gaps[j]):
+                            pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
+                        j += 1
+            for x in range(1, n):
+                if np.isnan(self.Z[x][0]) or np.isnan(self.Z[x-1][0]):
+                    continue
+                pygame.draw.line(screen, self.color, (self.x[x][0], -self.z[x][0]), (self.x[x-1][0], -self.z[x-1][0]), width=1)
+            for y in range(1, m):
+                if np.isnan(self.Z[0][y]) or np.isnan(self.Z[0][y-1]):
+                    continue
+                pygame.draw.line(screen, self.color, (self.x[0][y], -self.z[0][y]), (self.x[0][y-1], -self.z[0][y-1]), width=1)
 
 
-def make_axis_chart():
-    axis_chart = Chart()
-    axis_chart.set_lines(
-        [
-            Line(Point(-INF, 0, 0, 'blue'), Point(INF, 0, 0, 'blue'), 'red'),
-            Line(Point(0, -INF, 0, 'green'), Point(0, INF, 0, 'green'), 'green'),
-            Line(Point(0, 0, -INF, 'red'), Point(0, 0, INF, 'red'), 'blue')
-        ]
+def add_axis_charts(charts):
+    INF = 10**7
+    x_axis_chart = Chart()
+    x_axis_chart.set_chart(
+        np.array([[-INF], [INF]], dtype=np.float64),
+        np.array([[0], [0]], dtype=np.float64),
+        np.array([[0], [0]], dtype=np.float64),
+        color='blue'
     )
-    axis_chart.set_bias(x_bias=WIDTH // 2, z_bias=HEIGHT // 2)
-    return axis_chart
+    x_axis_chart.move(x_bias=WIDTH // 2, z_bias=-HEIGHT // 2)
+    x_axis_chart.rotate(START_H_ANGLE, START_V_ANGLE)
+    y_axis_chart = Chart()
+    y_axis_chart.set_chart(
+        np.array([[0], [0]], dtype=np.float64),
+        np.array([[-INF], [INF]], dtype=np.float64),
+        np.array([[0], [0]], dtype=np.float64),
+        color='green'
+    )
+    y_axis_chart.move(x_bias=WIDTH // 2, z_bias=-HEIGHT // 2)
+    y_axis_chart.rotate(START_H_ANGLE, START_V_ANGLE)
+    z_axis_chart = Chart()
+    z_axis_chart.set_chart(
+        np.array([[0], [0]], dtype=np.float64),
+        np.array([[0], [0]], dtype=np.float64),
+        np.array([[-INF], [INF]], dtype=np.float64),
+        color='red'
+    )
+    z_axis_chart.move(x_bias=WIDTH // 2, z_bias=-HEIGHT // 2)
+    z_axis_chart.rotate(START_H_ANGLE, START_V_ANGLE)
+    charts[-1] = x_axis_chart
+    charts[-2] = y_axis_chart
+    charts[-3] = z_axis_chart
 
 
 def main():
     pygame.init()
     
     charts = {}
-    axis_chart = make_axis_chart()
-    charts[-1] = axis_chart
+    add_axis_charts(charts)
     
     queue = Queue()
     gui_process = Process(target=start_gui, args=(queue,))
@@ -252,9 +194,9 @@ def mainloop(screen, charts, queue):
     fps_font = pygame.font.Font(None, 50)
     x_bias = WIDTH // 2
     y_bias = 0
-    z_bias = HEIGHT // 2
-    h_angle = 0
-    v_angle = 0
+    z_bias = -HEIGHT // 2
+    h_angle = START_H_ANGLE
+    v_angle = START_V_ANGLE
     zoom = 1
     
     while True:
@@ -268,14 +210,14 @@ def mainloop(screen, charts, queue):
                     moving = True
                     last_mouse_pos = event.pos
                 elif event.button == MOUSEWHEELUP:
-                    for chart in charts.values():
-                        chart.zoom(ZOOM_CHANGE_SPEED)
                     zoom += ZOOM_CHANGE_SPEED
-                elif event.button == MOUSEWHEELDOWN:
                     for chart in charts.values():
-                        chart.zoom(-ZOOM_CHANGE_SPEED)
+                        chart.zoom(zoom)
+                elif event.button == MOUSEWHEELDOWN:
                     if zoom - ZOOM_CHANGE_SPEED > 0:
                         zoom -= ZOOM_CHANGE_SPEED
+                    for chart in charts.values():
+                        chart.zoom(zoom)
             
             elif event.type == pygame.MOUSEBUTTONUP:
                 rotation = False
@@ -284,31 +226,31 @@ def mainloop(screen, charts, queue):
             elif event.type == pygame.MOUSEMOTION:
                 if rotation:
                     mouse_pos = event.pos
-                    d_x = (last_mouse_pos[0] - mouse_pos[0]) / ROTATION_COEF
-                    d_y = (last_mouse_pos[1] - mouse_pos[1]) / ROTATION_COEF
+                    d_x = (mouse_pos[0] - last_mouse_pos[0]) / ROTATION_COEF
+                    d_y = (mouse_pos[1] - last_mouse_pos[1]) / ROTATION_COEF
                     v_angle += d_y
                     if not (v_angle // pi % 2):
                         d_x *= -1
                     h_angle += d_x
                     for chart in charts.values():
-                        chart.rotate(d_x, d_y)
+                        chart.rotate(h_angle, v_angle)
                 if moving:
                     mouse_pos = event.pos
                     d_x = (mouse_pos[0] - last_mouse_pos[0]) / MOVING_COEF
-                    d_z = (mouse_pos[1] - last_mouse_pos[1]) / MOVING_COEF
+                    d_z = (last_mouse_pos[1] - mouse_pos[1]) / MOVING_COEF
                     x_bias += d_x
                     z_bias += d_z
                     for chart in charts.values():
-                        chart.move(d_x, 0, d_z)
+                        chart.move(x_bias, 0, z_bias)
                 last_mouse_pos = event.pos
 
             elif event.type == pygame.VIDEORESIZE:
                 dx = screen.get_width() // 2 - width // 2
-                dz = screen.get_height() // 2 - height // 2
+                dz = height // 2 - screen.get_height() // 2
                 x_bias += dx
                 z_bias += dz
                 for chart in charts.values():
-                    chart.move(dx, 0, dz)
+                    chart.move(x_bias, 0, z_bias)
                 width, height = screen.get_size()
             
             elif event.type == pygame.QUIT:
@@ -319,7 +261,7 @@ def mainloop(screen, charts, queue):
             chart.render(screen)
         
         fps = fps_font.render(str(int(time.get_fps())), True, 'green')
-        screen.blit(fps, (width-50, 0))
+        screen.blit(fps, (width - 50, 0))
         
         pygame.display.flip()
         
@@ -331,7 +273,7 @@ def mainloop(screen, charts, queue):
                     charts[chart_id] = Chart()
                 signal[2] = eval(signal[2])
                 charts[chart_id].make_chart(*signal[2:])
-                charts[chart_id].set_bias(x_bias, y_bias, z_bias)
+                charts[chart_id].move(x_bias, y_bias, z_bias)
                 charts[chart_id].rotate(h_angle, v_angle)
                 charts[chart_id].zoom(zoom)
             elif signal[0] == Signals.remove_chart:

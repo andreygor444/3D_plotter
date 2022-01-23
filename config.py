@@ -8,13 +8,15 @@ class Signals(Enum):
     stop_execution = 2
 
 
-INF = 10**5
+INF = 10**10
 DISPLAY_SIZE = WIDTH, HEIGHT = (800, 800)
 CIRCLE_LENGTH = 2 * pi
 MOVING_SPEED = 10
 ROTATION_COEF = 200
 MOVING_COEF = 1
 ZOOM_CHANGE_SPEED = 0.05
+START_H_ANGLE = pi/4
+START_V_ANGLE = pi/4
 BG_COLOR = 'black'
 FPS = 60
 
@@ -37,3 +39,24 @@ DEFAULT_CHARTS = [
     ('(x^2+y^2)/5', -10, 10, -10, 10, 2, 2, 1),
     ('(x^2+y^2)^0.5*10-140', -100, 100, -100, 100, 10, 10, 1)
 ]
+
+FUNCTION_SUBSTITUTIONS = {
+    '^': '**',
+    ',': '.',
+    
+    'arcsin': 'asin',
+    'arccos': 'acos',
+    'asin': 'arcsi_n',
+    'acos': 'arcco_s',
+    'sin': 'np.sin',
+    'cos': 'np.cos',
+    'arcsi_n': 'np.arcsin',
+    'arcco_s': 'np.arccos',
+    
+    'arctg': 'arctan',
+    'arctan': 'atan',
+    'atan': 'arcta_n',
+    'tg': 'tan',
+    'tan': 'np.tan',
+    'arcta_n': 'np.arctan'
+}

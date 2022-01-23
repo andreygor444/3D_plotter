@@ -5,7 +5,7 @@ from PyQt5 import uic
 from PyQt5.QtGui import QFont
 from functools import partial
 import sys
-from config import Signals, GUI_WINDOW_POS, DEFAULT_CHARTS
+from config import Signals, GUI_WINDOW_POS, DEFAULT_CHARTS, FUNCTION_SUBSTITUTIONS
 
 
 class ChartWidget(QWidget):
@@ -70,13 +70,13 @@ class ChartWidget(QWidget):
     
     def get_func(self):
         func = self.function_input.text()
-        for pattern, repl in (('^', '**'), (',', '.')):
+        for pattern, repl in FUNCTION_SUBSTITUTIONS.items():
             func = func.replace(pattern, repl)
-        return f'lambda x, y: {func}'
+        return f'lambda x, y: np.zeros(x.shape)+{func}'
     
     def validate_user_input(self, show_errors=True):
         try:
-            func, x_from, x_to, y_from, y_to, x_step, y_step, scale, _, _, _ = self.get_params()
+            func, x_from, x_to, y_from, y_to, x_step, y_step, _, _, _, _ = self.get_params()
             assert x_from < x_to
             assert y_from < y_to
             assert x_step < x_to - x_from
@@ -191,7 +191,7 @@ class MainWindow(QWidget):
     def hide_chart(self, chart_id):
         self.queue.put([Signals.remove_chart, chart_id])
     
-    def closeEvent(self, e):
+    def closeEvent(self, _):
         self.queue.put([Signals.stop_execution])
 
 
