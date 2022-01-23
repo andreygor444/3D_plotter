@@ -23,6 +23,8 @@ class Chart:
         self.x_bias = 0
         self.y_bias = 0
         self.z_bias = 0
+        self.x_gaps = np.array([0])
+        self.y_gaps = np.array([0])
         self.show_points = False
         self.show_lines = True
 
@@ -33,11 +35,26 @@ class Chart:
             self.show_lines = show_lines
             self.color = color
             self.clear()
-            x_axis = np.linspace(x_begin, x_end, round((x_end-x_begin) / x_step) + 1, dtype=np.float64) * scale
-            y_axis = np.linspace(y_begin, y_end, round((y_end-y_begin) / y_step) + 1, dtype=np.float64) * scale
+            x_axis = np.linspace(x_begin, x_end, round((x_end-x_begin) / x_step) + 1, dtype=np.float64)
+            y_axis = np.linspace(y_begin, y_end, round((y_end-y_begin) / y_step) + 1, dtype=np.float64)
             self.X, self.Y = np.meshgrid(x_axis, y_axis)
             self.Z = func(self.X, self.Y) * scale
+            self.X *= scale
+            self.Y *= scale
             self.Z[np.abs(self.Z) > INF] = np.nan
+            gaps = np.isnan(self.Z)
+            self.x_gaps = gaps + np.roll(gaps, 1, axis=0)
+            self.y_gaps = gaps + np.roll(gaps, 1, axis=1)
+            self.x_gaps[0,:] = 0
+            self.x_gaps[:,0] = 0
+            self.y_gaps[0,:] = 0
+            self.y_gaps[:,0] = 0
+            self.x_gaps = np.where(self.x_gaps)
+            self.x_gaps = np.reshape(np.concatenate(self.x_gaps), (2, len(self.x_gaps[0])))
+            self.x_gaps = np.concatenate((self.x_gaps, [[0], [0]]), axis=1)
+            self.y_gaps = np.where(self.y_gaps)
+            self.y_gaps = np.reshape(np.concatenate(self.y_gaps), (2, len(self.y_gaps[0])))
+            self.y_gaps = np.concatenate((self.y_gaps, [[0], [0]]), axis=1)
         except Exception as err:
             self.clear()
             print("Error:", err)
@@ -92,36 +109,23 @@ class Chart:
         self._move()
         n = self.x.shape[0]
         m = self.x.shape[1] if len(self.x.shape) > 1 else 0
-        x_gaps_, y_gaps_ = np.array(np.where(np.isnan(self.Z)))
-        x_gaps = np.concatenate(([-1], x_gaps_, [n]))
-        y_gaps = np.concatenate(([-1], y_gaps_, [m]))
         if self.show_points:
             for x in range(n):
                 for y in range(m):
                     pygame.draw.circle(screen, self.color, (self.x[x][y], -self.z[x][y]), 2)
         if self.show_lines:
-            x = n
-            for i in range(1, len(x_gaps)):
-                for x in range(x_gaps[i-1]+2, x_gaps[i]):
-                    for y in range(1, m):
-                        pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
+            i = 0
+            j = 0
+            for x in range(1, n):
+                for y in range(1, m):
+                    if self.x_gaps[0][i] == x and self.x_gaps[1][i] == y:
+                        i += 1
+                    else:
                         pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x-1][y], -self.z[x-1][y]), width=1)
-                j = i
-                x += 1
-                if x < n:
-                    while j < len(x_gaps) and x_gaps[j] == x_gaps[i]:
-                        y_gaps[j-1] = -1
-                        for y in range(y_gaps[j-1]+2, y_gaps[j]):
-                            pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
+                    if self.y_gaps[0,j] == x and self.y_gaps[1,j] == y:
                         j += 1
-                i = j
-                x += 1
-                y_gaps[j-1] = -1
-                if x < n:
-                    while j < len(x_gaps) and x_gaps[j] == x_gaps[i]:
-                        for y in range(y_gaps[j-1]+2, y_gaps[j]):
-                            pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
-                        j += 1
+                        continue
+                    pygame.draw.line(screen, self.color, (self.x[x][y], -self.z[x][y]), (self.x[x][y-1], -self.z[x][y-1]), width=1)
             for x in range(1, n):
                 if np.isnan(self.Z[x][0]) or np.isnan(self.Z[x-1][0]):
                     continue
