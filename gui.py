@@ -5,6 +5,7 @@ from PyQt5 import uic
 from PyQt5.QtGui import QFont
 from functools import partial
 import sys
+
 from config import Signals, GUI_WINDOW_POS, DEFAULT_CHARTS, FUNCTION_SUBSTITUTIONS
 
 
