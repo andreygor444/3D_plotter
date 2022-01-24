@@ -1,6 +1,7 @@
 import pygame
 from multiprocessing import Process, Queue
 import numpy as np
+from math import e
 import os
 
 from config import *
