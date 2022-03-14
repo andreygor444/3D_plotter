@@ -10,7 +10,7 @@ from gui import start_gui
 
 class Chart:
     color = 'white'
-    
+
     def __init__(self):
         self.X = np.empty(0)
         self.Y = np.empty(0)
@@ -59,7 +59,7 @@ class Chart:
         except Exception as err:
             self.clear()
             print("Error:", err)
-    
+
     def set_chart(self, x, y, z, color=color):
         self.X, self.Y, self.Z = x, y, z
         self.color = color
@@ -68,25 +68,25 @@ class Chart:
         self.X = np.empty(0)
         self.Y = np.empty(0)
         self.Z = np.empty((0, 0))
-    
+
     def zoom(self, zoom):
         self.zoom_power = zoom
-    
+
     def _zoom(self):
         self.x *= self.zoom_power
         self.y *= self.zoom_power
         self.z *= self.zoom_power
-    
+
     def rotate(self, h_angle, v_angle):
         self.h_angle = h_angle
         self.v_angle = v_angle
-    
+
     def _rotate(self):
         x = self.x*np.cos(self.h_angle) - self.y*np.sin(self.h_angle)
         y = self.x*np.sin(self.h_angle) + self.y*np.cos(self.h_angle)
         self.x = x
         self.y = y
-        
+
         y = self.y*np.cos(self.v_angle) - self.z*np.sin(self.v_angle)
         self.z = -self.y*np.sin(self.v_angle) + self.z*np.cos(self.v_angle)
         self.y = y
@@ -177,19 +177,19 @@ def add_axis_charts(charts):
 
 def main():
     pygame.init()
-    
+
     charts = {}
     add_axis_charts(charts)
-    
+
     queue = Queue()
     gui_process = Process(target=start_gui, args=(queue,))
     gui_process.start()
 
     os.environ['SDL_VIDEO_WINDOW_POS'] = '{},{}'.format(*PLOTTER_WINDOW_POS)
     os.environ['SDL_VIDEO_CENTERED'] = '0'
-    screen = pygame.display.set_mode(DISPLAY_SIZE, pygame.RESIZABLE)
+    screen = pygame.display.set_mode(PLOTTER_WINDOW_SIZE, pygame.RESIZABLE)
     mainloop(screen, charts, queue)
-    
+
     gui_process.kill()
     pygame.quit()
 
@@ -207,7 +207,7 @@ def mainloop(screen, charts, queue):
     h_angle = START_H_ANGLE
     v_angle = START_V_ANGLE
     zoom = 1
-    
+
     while True:
         time.tick(FPS)
         for event in pygame.event.get():
@@ -227,11 +227,11 @@ def mainloop(screen, charts, queue):
                         zoom -= ZOOM_CHANGE_SPEED
                     for chart in charts.values():
                         chart.zoom(zoom)
-            
+
             elif event.type == pygame.MOUSEBUTTONUP:
                 rotation = False
                 moving = False
-            
+
             elif event.type == pygame.MOUSEMOTION:
                 if rotation:
                     mouse_pos = event.pos
@@ -261,19 +261,19 @@ def mainloop(screen, charts, queue):
                 for chart in charts.values():
                     chart.move(x_bias, 0, z_bias)
                 width, height = screen.get_size()
-            
+
             elif event.type == pygame.QUIT:
                 return
-        
+
         screen.fill(BG_COLOR)
         for chart in charts.values():
             chart.render(screen)
-        
+
         fps = fps_font.render(str(int(time.get_fps())), True, 'green')
         screen.blit(fps, (width - 50, 0))
-        
+
         pygame.display.flip()
-        
+
         if not queue.empty():
             signal = queue.get()
             if signal[0] == Signals.show_chart:
@@ -285,10 +285,16 @@ def mainloop(screen, charts, queue):
                 charts[chart_id].move(x_bias, y_bias, z_bias)
                 charts[chart_id].rotate(h_angle, v_angle)
                 charts[chart_id].zoom(zoom)
-            elif signal[0] == Signals.remove_chart:
+            elif signal[0] == Signals.del_chart:
                 chart_id = signal[1]
                 if chart_id in charts:
                     del charts[chart_id]
+            elif signal[0] == Signals.add_param:
+                param_name, param_value = signal[1:]
+                globals()[param_name] = param_value
+            elif signal[0] == Signals.del_param:
+                param_name = signal[1]
+                del globals()[param_name]
             elif signal[0] == Signals.stop_execution:
                 return
 
